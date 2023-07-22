@@ -41,7 +41,8 @@ public class MyBot : IChessBot
         foreach (Move mv in board.GetLegalMoves())
         {
             board.MakeMove(mv);
-            if(board.IsInCheckmate()) {
+            if (board.IsInCheckmate())
+            {
                 Console.WriteLine("Checkmate found: " + mv);
                 board.UndoMove(mv);
                 board.UndoMove(move);
@@ -64,17 +65,18 @@ public class MyBot : IChessBot
             score += 0.2; // Cool factor
         if (move.IsCastles)
             score += 0.1; // Cool factor
-        if(move.TargetSquare.File != move.StartSquare.File && (white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
+        if (move.TargetSquare.File != move.StartSquare.File && (white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
             score += 1.0 / board.PlyCount; // Get it off the home rank
 
         Move? protector = IsSpaceProtected(board, move.TargetSquare);
-        
+
         if (move.IsCapture)
         { // Captures
             score += GetPieceScore(move.CapturePieceType) * 2.0;
 
             List<Move> moves = new List<Move>(board.GetLegalMoves());
-            if (protector != null) {
+            if (protector != null)
+            {
                 // If the piece is defended, it's not worth as much
                 score -= GetPieceScore(move.MovePieceType) * 2.0;
                 score -= 1.0 / GetPieceScore(protector.Value.MovePieceType) * 2.0;
@@ -84,8 +86,26 @@ public class MyBot : IChessBot
         {
             score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank);
             score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
-            if (protector == null)
-                score += 0.1;
+            // if (protector == null)
+            //     score += 0.05;
+        }
+        if (move.MovePieceType == PieceType.Knight && protector == null)
+        {
+            if (board.TrySkipTurn())
+            {
+                foreach(Move mv in board.GetLegalMoves(true)) {
+                    if(mv.StartSquare != move.TargetSquare)
+                        continue;
+                    Move? prot = IsSpaceProtected(board, mv.TargetSquare);
+                    if(prot != null) {
+                        score += GetPieceScore(mv.CapturePieceType) / GetPieceScore(prot.Value.MovePieceType);
+                    } else {
+                        score += GetPieceScore(mv.CapturePieceType) * 2.0;
+                    }
+                }
+                // board.GetPiece(move.TargetSquare).
+                board.UndoSkipTurn();
+            }
         }
         if (protector != null)
             score -= GetPieceScore(move.MovePieceType);

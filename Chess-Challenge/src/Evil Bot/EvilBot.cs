@@ -16,7 +16,7 @@ public class EvilBot : IChessBot
         double score = GetScore(moves[0], board);
         if (!board.IsWhiteToMove)
             score = -score;
-        Console.WriteLine("Best move: " + moves[0] + " with score " + score);
+        // Console.WriteLine("Best move: " + moves[0] + " with score " + score);
         return moves[0];
     }
 
