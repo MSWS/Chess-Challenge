@@ -2,8 +2,11 @@ using System;
 using System.Collections.Generic;
 using ChessChallenge.API;
 
-public class EvilBotUnused : IChessBot
+public class EvilBot : IChessBot
 {
+
+    float[] pieceValuies = { 0, 1, 3, 3, 5, 9, 100 };
+
     public Move Think(Board board, Timer timer)
     {
         return Evaluate(board);
@@ -16,7 +19,7 @@ public class EvilBotUnused : IChessBot
         double score = GetScore(moves[0], board);
         if (!board.IsWhiteToMove)
             score = -score;
-        // Console.WriteLine("Best move: " + moves[0] + " with score " + score);
+        Console.WriteLine("Best move: " + moves[0] + " with score " + score);
         return moves[0];
     }
 
@@ -24,6 +27,14 @@ public class EvilBotUnused : IChessBot
     {
         double score = 0;
         bool white = board.IsWhiteToMove;
+
+        Move? attacker = null;
+        if (board.TrySkipTurn())
+        {
+            attacker = IsSpaceProtected(board, move.StartSquare);
+            board.UndoSkipTurn();
+        }
+
         board.MakeMove(move);
         if (board.IsDraw())
         {
@@ -59,16 +70,21 @@ public class EvilBotUnused : IChessBot
         score += (3.5 - (Math.Abs(3.5 - avgRank))
                 + (3.5 - (Math.Abs(3.5 - avgFile)))
         ) / 25.0;
-        score += avgMoves / 250.0;
+        score += avgMoves / 5000.0;
 
         if (move.IsEnPassant)
-            score += 0.2; // Cool factor
+            score += 0.02; // Cool factor
         if (move.IsCastles)
-            score += 0.1; // Cool factor
+            score += 0.01; // Cool factor
         if (move.TargetSquare.File != move.StartSquare.File && (white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
             score += 1.0 / board.PlyCount; // Get it off the home rank
 
         Move? protector = IsSpaceProtected(board, move.TargetSquare);
+
+        if (attacker != null && attacker != protector)
+        {
+            score += (GetPieceScore(move.MovePieceType) - GetPieceScore(attacker.Value.MovePieceType)) * 10000.0;
+        }
 
         if (move.IsCapture)
         { // Captures
@@ -84,13 +100,13 @@ public class EvilBotUnused : IChessBot
         }
         if (move.MovePieceType == PieceType.Pawn)
         {
-            score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank);
+            score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank) * 8.0 / board.PlyCount;
             score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
             // if (protector == null)
             //     score += 0.05;
         }
-        if (move.MovePieceType == PieceType.Knight && protector == null)
-        { // Knight Forking is pog
+        if (protector == null)
+        { // Forking is pog
             if (board.TrySkipTurn())
             {
                 foreach (Move mv in board.GetLegalMoves(true))
@@ -110,6 +126,7 @@ public class EvilBotUnused : IChessBot
                 board.UndoSkipTurn();
             }
         }
+
         if (protector != null)
             score -= GetPieceScore(move.MovePieceType);
         if (move.IsPromotion) // Promote to queen
@@ -130,31 +147,32 @@ public class EvilBotUnused : IChessBot
 
     private Move? IsSpaceProtected(Board board, Square square)
     {
-        List<Move> moves = new List<Move>(board.GetLegalMoves()).FindAll(m => m.IsCapture && m.TargetSquare == square);
+        List<Move> moves = new List<Move>(board.GetLegalMoves(true)).FindAll(m => m.TargetSquare == square);
         if (moves.Count == 0)
             return null;
         moves.Sort((a, b) => GetPieceScore(a.MovePieceType).CompareTo(GetPieceScore(b.MovePieceType)));
         return moves[0];
     }
 
-    private int GetPieceScore(PieceType type)
+    private float GetPieceScore(PieceType type)
     {
-        switch (type)
-        {
-            case PieceType.Pawn:
-                return 1;
-            case PieceType.Knight:
-                return 3;
-            case PieceType.Bishop:
-                return 3;
-            case PieceType.Rook:
-                return 5;
-            case PieceType.Queen:
-                return 9;
-            case PieceType.King:
-                return 100;
-            default:
-                return 0;
-        }
+        return pieceValuies[(int)type];
+        // switch (type)
+        // {
+        //     case PieceType.Pawn:
+        //         return 1;
+        //     case PieceType.Knight:
+        //         return 3;
+        //     case PieceType.Bishop:
+        //         return 3;
+        //     case PieceType.Rook:
+        //         return 5;
+        //     case PieceType.Queen:
+        //         return 9;
+        //     case PieceType.King:
+        //         return 100;
+        //     default:
+        //         return 0;
+        // }
     }
 }

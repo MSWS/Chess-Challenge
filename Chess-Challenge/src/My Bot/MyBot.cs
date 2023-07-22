@@ -70,12 +70,12 @@ public class MyBot : IChessBot
         score += (3.5 - (Math.Abs(3.5 - avgRank))
                 + (3.5 - (Math.Abs(3.5 - avgFile)))
         ) / 25.0;
-        score += avgMoves / 250.0;
+        score += avgMoves / 5000.0;
 
         if (move.IsEnPassant)
-            score += 0.2; // Cool factor
+            score += 0.02; // Cool factor
         if (move.IsCastles)
-            score += 0.1; // Cool factor
+            score += 0.01; // Cool factor
         if (move.TargetSquare.File != move.StartSquare.File && (white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
             score += 1.0 / board.PlyCount; // Get it off the home rank
 
@@ -83,7 +83,6 @@ public class MyBot : IChessBot
 
         if (attacker != null && attacker != protector)
         {
-            // Console.WriteLine("Attackers: " + attacker);
             score += (GetPieceScore(move.MovePieceType) - GetPieceScore(attacker.Value.MovePieceType)) * 5.0;
         }
 
@@ -101,7 +100,7 @@ public class MyBot : IChessBot
         }
         if (move.MovePieceType == PieceType.Pawn)
         {
-            score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank);
+            score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank) * 8.0 / board.PlyCount;
             score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
             // if (protector == null)
             //     score += 0.05;
