@@ -43,7 +43,7 @@ public class EvilBot : IChessBot
             board.MakeMove(mv);
             if (board.IsInCheckmate())
             {
-                Console.WriteLine("Checkmate found: " + mv);
+                // Console.WriteLine("Checkmate found: " + mv);
                 board.UndoMove(mv);
                 board.UndoMove(move);
                 return -1000;
@@ -86,8 +86,29 @@ public class EvilBot : IChessBot
         {
             score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank);
             score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
-            if (protector == null)
-                score += 0.1;
+            // if (protector == null)
+            //     score += 0.05;
+        }
+        if (move.MovePieceType == PieceType.Knight && protector == null)
+        { // Knight Forking is pog
+            if (board.TrySkipTurn())
+            {
+                foreach (Move mv in board.GetLegalMoves(true))
+                {
+                    if (mv.StartSquare != move.TargetSquare)
+                        continue;
+                    Move? prot = IsSpaceProtected(board, mv.TargetSquare);
+                    if (prot != null)
+                    {
+                        score += GetPieceScore(mv.CapturePieceType) / GetPieceScore(prot.Value.MovePieceType);
+                    }
+                    else
+                    {
+                        score += GetPieceScore(mv.CapturePieceType) * 2.0;
+                    }
+                }
+                board.UndoSkipTurn();
+            }
         }
         if (protector != null)
             score -= GetPieceScore(move.MovePieceType);

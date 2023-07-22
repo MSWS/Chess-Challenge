@@ -24,6 +24,13 @@ public class MyBot : IChessBot
     {
         double score = 0;
         bool white = board.IsWhiteToMove;
+
+        Move? attacker = null;
+        if(board.TrySkipTurn()) {
+            attacker = IsSpaceProtected(board, move.StartSquare);
+            board.UndoSkipTurn();
+        }
+
         board.MakeMove(move);
         if (board.IsDraw())
         {
@@ -43,7 +50,7 @@ public class MyBot : IChessBot
             board.MakeMove(mv);
             if (board.IsInCheckmate())
             {
-                Console.WriteLine("Checkmate found: " + mv);
+                // Console.WriteLine("Checkmate found: " + mv);
                 board.UndoMove(mv);
                 board.UndoMove(move);
                 return -1000;
@@ -70,6 +77,12 @@ public class MyBot : IChessBot
 
         Move? protector = IsSpaceProtected(board, move.TargetSquare);
 
+        if (attacker != null && attacker != protector)
+        {
+            // Console.WriteLine("Attackers: " + attacker);
+            score += (GetPieceScore(move.MovePieceType) - GetPieceScore(attacker.Value.MovePieceType)) * 5.0;
+        }
+
         if (move.IsCapture)
         { // Captures
             score += GetPieceScore(move.CapturePieceType) * 2.0;
@@ -89,24 +102,28 @@ public class MyBot : IChessBot
             // if (protector == null)
             //     score += 0.05;
         }
-        if (move.MovePieceType == PieceType.Knight && protector == null)
-        {
+        if (protector == null)
+        { // Forking is pog
             if (board.TrySkipTurn())
             {
-                foreach(Move mv in board.GetLegalMoves(true)) {
-                    if(mv.StartSquare != move.TargetSquare)
+                foreach (Move mv in board.GetLegalMoves(true))
+                {
+                    if (mv.StartSquare != move.TargetSquare)
                         continue;
                     Move? prot = IsSpaceProtected(board, mv.TargetSquare);
-                    if(prot != null) {
+                    if (prot != null)
+                    {
                         score += GetPieceScore(mv.CapturePieceType) / GetPieceScore(prot.Value.MovePieceType);
-                    } else {
+                    }
+                    else
+                    {
                         score += GetPieceScore(mv.CapturePieceType) * 2.0;
                     }
                 }
-                // board.GetPiece(move.TargetSquare).
                 board.UndoSkipTurn();
             }
         }
+
         if (protector != null)
             score -= GetPieceScore(move.MovePieceType);
         if (move.IsPromotion) // Promote to queen
@@ -127,7 +144,7 @@ public class MyBot : IChessBot
 
     private Move? IsSpaceProtected(Board board, Square square)
     {
-        List<Move> moves = new List<Move>(board.GetLegalMoves()).FindAll(m => m.IsCapture && m.TargetSquare == square);
+        List<Move> moves = new List<Move>(board.GetLegalMoves(true)).FindAll(m => m.TargetSquare == square);
         if (moves.Count == 0)
             return null;
         moves.Sort((a, b) => GetPieceScore(a.MovePieceType).CompareTo(GetPieceScore(b.MovePieceType)));
