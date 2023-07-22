@@ -13,6 +13,10 @@ public class MyBot : IChessBot
     {
         List<Move> moves = new List<Move>(board.GetLegalMoves());
         moves.Sort((a, b) => -GetScore(a, board).CompareTo(GetScore(b, board)));
+        double score = GetScore(moves[0], board);
+        if (!board.IsWhiteToMove)
+            score = -score;
+        Console.WriteLine("Best move: " + moves[0] + " with score " + score);
         return moves[0];
     }
 
@@ -33,35 +37,38 @@ public class MyBot : IChessBot
         }
 
         float avgRank = 0, avgFile = 0; // Shake that king to the sides of the board
+        float avgMoves = 0;
         foreach (Move mv in board.GetLegalMoves())
         {
             board.MakeMove(mv);
             if(board.IsInCheckmate()) {
+                Console.WriteLine("Checkmate found: " + mv);
                 board.UndoMove(mv);
                 board.UndoMove(move);
                 return -1000;
             }
+            avgMoves += board.GetLegalMoves().Length;
             avgRank += board.GetKingSquare(!white).Rank;
             avgFile += board.GetKingSquare(!white).File;
             board.UndoMove(mv);
         }
         avgRank /= board.GetLegalMoves().Length;
         avgFile /= board.GetLegalMoves().Length;
+        avgMoves /= board.GetLegalMoves().Length;
         score += (3.5 - (Math.Abs(3.5 - avgRank))
                 + (3.5 - (Math.Abs(3.5 - avgFile)))
         ) / 25.0;
+        score += avgMoves / 250.0;
 
         if (move.IsEnPassant)
             score += 0.2; // Cool factor
         if (move.IsCastles)
             score += 0.1; // Cool factor
-        if((white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
+        if(move.TargetSquare.File != move.StartSquare.File && (white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
             score += 1.0 / board.PlyCount; // Get it off the home rank
 
         Move? protector = IsSpaceProtected(board, move.TargetSquare);
-        // if (protector != null)
-        //     Console.WriteLine(move.TargetSquare + " protected by " + protector.Value.MovePieceType + " on " + protector.Value.StartSquare);
-
+        
         if (move.IsCapture)
         { // Captures
             score += GetPieceScore(move.CapturePieceType) * 2.0;
@@ -90,8 +97,8 @@ public class MyBot : IChessBot
         {
             if (type == PieceType.None)
                 continue;
-            score += GetPieceScore(type) * board.GetPieceList(type, !board.IsWhiteToMove).Count * 2.5;
-            score -= GetPieceScore(type) * board.GetPieceList(type, board.IsWhiteToMove).Count * 2.5;
+            score += GetPieceScore(type) * board.GetPieceList(type, white).Count * 2.5;
+            score -= GetPieceScore(type) * board.GetPieceList(type, !white).Count * 2.5;
         }
 
         board.UndoMove(move);
