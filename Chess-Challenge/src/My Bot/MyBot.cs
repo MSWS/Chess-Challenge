@@ -19,7 +19,7 @@ public class MyBot : IChessBot
         double score = GetScore(moves[0], board);
         if (!board.IsWhiteToMove)
             score = -score;
-        Console.WriteLine("Best move: " + moves[0] + " with score " + score);
+        Console.WriteLine("Move " + board.PlyCount + ": " + moves[0] + " with score " + score);
         return moves[0];
     }
 
@@ -27,6 +27,7 @@ public class MyBot : IChessBot
     {
         double score = 0;
         bool white = board.IsWhiteToMove;
+        bool endgame = board.GetPieceList(PieceType.Queen, !white).Count == 0;
 
         Move? attacker = null;
         if (board.TrySkipTurn())
@@ -54,7 +55,6 @@ public class MyBot : IChessBot
             board.MakeMove(mv);
             if (board.IsInCheckmate())
             {
-                // Console.WriteLine("Checkmate found: " + mv);
                 board.UndoMove(mv);
                 board.UndoMove(move);
                 return -1000;
@@ -67,7 +67,7 @@ public class MyBot : IChessBot
         avgRank /= board.GetLegalMoves().Length;
         avgFile /= board.GetLegalMoves().Length;
         avgMoves /= board.GetLegalMoves().Length;
-        score += (3.5 - (Math.Abs(3.5 - avgRank))
+        score -= (3.5 - (Math.Abs(3.5 - avgRank))
                 + (3.5 - (Math.Abs(3.5 - avgFile)))
         ) / 25.0;
         score += avgMoves / 5000.0;
@@ -102,8 +102,6 @@ public class MyBot : IChessBot
         {
             score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank) * 8.0 / board.PlyCount;
             score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
-            // if (protector == null)
-            //     score += 0.05;
         }
         if (protector == null)
         { // Forking is pog
@@ -120,7 +118,7 @@ public class MyBot : IChessBot
                     }
                     else
                     {
-                        score += GetPieceScore(mv.CapturePieceType) * 2.0;
+                        score += GetPieceScore(mv.CapturePieceType);
                     }
                 }
                 board.UndoSkipTurn();
@@ -139,6 +137,16 @@ public class MyBot : IChessBot
                 continue;
             score += GetPieceScore(type) * board.GetPieceList(type, white).Count * 2.5;
             score -= GetPieceScore(type) * board.GetPieceList(type, !white).Count * 2.5;
+
+            if (endgame)
+            {
+                foreach(Piece piece in board.GetPieceList(type, white))
+                {
+                    score -= GetDistance(piece.Square, board.GetKingSquare(!white)) / 100.0;
+                }
+                // Endgame baby
+                // score -= GetDistance(move.TargetSquare, board.GetKingSquare(!white)) * board.PlyCount;
+            }
         }
 
         board.UndoMove(move);
@@ -157,22 +165,11 @@ public class MyBot : IChessBot
     private float GetPieceScore(PieceType type)
     {
         return pieceValuies[(int)type];
-        // switch (type)
-        // {
-        //     case PieceType.Pawn:
-        //         return 1;
-        //     case PieceType.Knight:
-        //         return 3;
-        //     case PieceType.Bishop:
-        //         return 3;
-        //     case PieceType.Rook:
-        //         return 5;
-        //     case PieceType.Queen:
-        //         return 9;
-        //     case PieceType.King:
-        //         return 100;
-        //     default:
-        //         return 0;
-        // }
+    }
+
+    private double GetDistance(Square a, Square b, bool squared = false)
+    {
+        double dist = Math.Pow(a.Rank - b.Rank, 2) + Math.Pow(a.File - b.File, 2);
+        return squared ? dist : Math.Sqrt(dist);
     }
 }

@@ -54,7 +54,6 @@ public class EvilBot : IChessBot
             board.MakeMove(mv);
             if (board.IsInCheckmate())
             {
-                // Console.WriteLine("Checkmate found: " + mv);
                 board.UndoMove(mv);
                 board.UndoMove(move);
                 return -1000;
@@ -67,7 +66,7 @@ public class EvilBot : IChessBot
         avgRank /= board.GetLegalMoves().Length;
         avgFile /= board.GetLegalMoves().Length;
         avgMoves /= board.GetLegalMoves().Length;
-        score += (3.5 - (Math.Abs(3.5 - avgRank))
+        score -= (3.5 - (Math.Abs(3.5 - avgRank))
                 + (3.5 - (Math.Abs(3.5 - avgFile)))
         ) / 25.0;
         score += avgMoves / 5000.0;
@@ -83,7 +82,7 @@ public class EvilBot : IChessBot
 
         if (attacker != null && attacker != protector)
         {
-            score += (GetPieceScore(move.MovePieceType) - GetPieceScore(attacker.Value.MovePieceType)) * 10000.0;
+            score += (GetPieceScore(move.MovePieceType) - GetPieceScore(attacker.Value.MovePieceType)) * 5.0;
         }
 
         if (move.IsCapture)
@@ -102,8 +101,6 @@ public class EvilBot : IChessBot
         {
             score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank) * 8.0 / board.PlyCount;
             score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
-            // if (protector == null)
-            //     score += 0.05;
         }
         if (protector == null)
         { // Forking is pog
@@ -157,22 +154,5 @@ public class EvilBot : IChessBot
     private float GetPieceScore(PieceType type)
     {
         return pieceValuies[(int)type];
-        // switch (type)
-        // {
-        //     case PieceType.Pawn:
-        //         return 1;
-        //     case PieceType.Knight:
-        //         return 3;
-        //     case PieceType.Bishop:
-        //         return 3;
-        //     case PieceType.Rook:
-        //         return 5;
-        //     case PieceType.Queen:
-        //         return 9;
-        //     case PieceType.King:
-        //         return 100;
-        //     default:
-        //         return 0;
-        // }
     }
 }
