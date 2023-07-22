@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using ChessChallenge.API;
 
-public class EvilBot : IChessBot
+public class EvilBotUnused : IChessBot
 {
     public Move Think(Board board, Timer timer)
     {

@@ -4,6 +4,9 @@ using ChessChallenge.API;
 
 public class MyBot : IChessBot
 {
+
+    float[] pieceValuies = { 0, 1, 3, 3, 5, 9, 100 };
+
     public Move Think(Board board, Timer timer)
     {
         return Evaluate(board);
@@ -26,7 +29,8 @@ public class MyBot : IChessBot
         bool white = board.IsWhiteToMove;
 
         Move? attacker = null;
-        if(board.TrySkipTurn()) {
+        if (board.TrySkipTurn())
+        {
             attacker = IsSpaceProtected(board, move.StartSquare);
             board.UndoSkipTurn();
         }
@@ -151,24 +155,25 @@ public class MyBot : IChessBot
         return moves[0];
     }
 
-    private int GetPieceScore(PieceType type)
+    private float GetPieceScore(PieceType type)
     {
-        switch (type)
-        {
-            case PieceType.Pawn:
-                return 1;
-            case PieceType.Knight:
-                return 3;
-            case PieceType.Bishop:
-                return 3;
-            case PieceType.Rook:
-                return 5;
-            case PieceType.Queen:
-                return 9;
-            case PieceType.King:
-                return 100;
-            default:
-                return 0;
-        }
+        return pieceValuies[(int)type];
+        // switch (type)
+        // {
+        //     case PieceType.Pawn:
+        //         return 1;
+        //     case PieceType.Knight:
+        //         return 3;
+        //     case PieceType.Bishop:
+        //         return 3;
+        //     case PieceType.Rook:
+        //         return 5;
+        //     case PieceType.Queen:
+        //         return 9;
+        //     case PieceType.King:
+        //         return 100;
+        //     default:
+        //         return 0;
+        // }
     }
 }
