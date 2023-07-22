@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using ChessChallenge.API;
 
-public class EvilBot : IChessBot
+public class EvilBotA : IChessBot
 {
 
     float[] pieceValuies = { 0, 1, 3, 3, 5, 9, 100 };

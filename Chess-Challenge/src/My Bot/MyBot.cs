@@ -88,7 +88,7 @@ public class MyBot : IChessBot
 
         if (move.IsCapture)
         { // Captures
-            score += GetPieceScore(move.CapturePieceType) * 2.0;
+            score += GetPieceScore(move.CapturePieceType) * 2.5;
 
             List<Move> moves = new List<Move>(board.GetLegalMoves());
             if (protector != null)
@@ -140,12 +140,11 @@ public class MyBot : IChessBot
 
             if (endgame)
             {
+                // Endgame baby
                 foreach(Piece piece in board.GetPieceList(type, white))
                 {
                     score -= GetDistance(piece.Square, board.GetKingSquare(!white)) / 100.0;
                 }
-                // Endgame baby
-                // score -= GetDistance(move.TargetSquare, board.GetKingSquare(!white)) * board.PlyCount;
             }
         }
 
