@@ -1,10 +1,130 @@
-﻿using ChessChallenge.API;
+﻿using System;
+using System.Collections.Generic;
+using ChessChallenge.API;
 
 public class MyBot : IChessBot
 {
     public Move Think(Board board, Timer timer)
     {
-        Move[] moves = board.GetLegalMoves();
+        return Evaluate(board);
+    }
+
+    private Move Evaluate(Board board)
+    {
+        List<Move> moves = new List<Move>(board.GetLegalMoves());
+        moves.Sort((a, b) => -GetScore(a, board).CompareTo(GetScore(b, board)));
         return moves[0];
+    }
+
+    private double GetScore(Move move, Board board)
+    {
+        double score = 0;
+        bool white = board.IsWhiteToMove;
+        board.MakeMove(move);
+        if (board.IsDraw())
+        {
+            board.UndoMove(move);
+            return 0;
+        }
+        if (board.IsInCheckmate())
+        {
+            board.UndoMove(move);
+            return 1000;
+        }
+
+        float avgRank = 0, avgFile = 0; // Shake that king to the sides of the board
+        foreach (Move mv in board.GetLegalMoves())
+        {
+            board.MakeMove(mv);
+            if(board.IsInCheckmate()) {
+                board.UndoMove(mv);
+                board.UndoMove(move);
+                return -1000;
+            }
+            avgRank += board.GetKingSquare(!white).Rank;
+            avgFile += board.GetKingSquare(!white).File;
+            board.UndoMove(mv);
+        }
+        avgRank /= board.GetLegalMoves().Length;
+        avgFile /= board.GetLegalMoves().Length;
+        score += (3.5 - (Math.Abs(3.5 - avgRank))
+                + (3.5 - (Math.Abs(3.5 - avgFile)))
+        ) / 25.0;
+
+        if (move.IsEnPassant)
+            score += 0.2; // Cool factor
+        if (move.IsCastles)
+            score += 0.1; // Cool factor
+        if((white && move.StartSquare.File == 0) || (!white && move.StartSquare.File == 8))
+            score += 1.0 / board.PlyCount; // Get it off the home rank
+
+        Move? protector = IsSpaceProtected(board, move.TargetSquare);
+        // if (protector != null)
+        //     Console.WriteLine(move.TargetSquare + " protected by " + protector.Value.MovePieceType + " on " + protector.Value.StartSquare);
+
+        if (move.IsCapture)
+        { // Captures
+            score += GetPieceScore(move.CapturePieceType) * 2.0;
+
+            List<Move> moves = new List<Move>(board.GetLegalMoves());
+            if (protector != null) {
+                // If the piece is defended, it's not worth as much
+                score -= GetPieceScore(move.MovePieceType) * 2.0;
+                score -= 1.0 / GetPieceScore(protector.Value.MovePieceType) * 2.0;
+            }
+        }
+        if (move.MovePieceType == PieceType.Pawn)
+        {
+            score += 0.05 * Math.Abs(move.StartSquare.Rank - move.TargetSquare.Rank);
+            score += (3.5 - (Math.Abs(3.5 - move.StartSquare.File))) / 100.0;
+            if (protector == null)
+                score += 0.1;
+        }
+        if (protector != null)
+            score -= GetPieceScore(move.MovePieceType);
+        if (move.IsPromotion) // Promote to queen
+            score += GetPieceScore(move.PromotionPieceType);
+        score -= board.GetLegalMoves().Length / 50.0; // Less moves for the opponent is better
+
+        foreach (PieceType type in Enum.GetValues<PieceType>())
+        {
+            if (type == PieceType.None)
+                continue;
+            score += GetPieceScore(type) * board.GetPieceList(type, !board.IsWhiteToMove).Count * 2.5;
+            score -= GetPieceScore(type) * board.GetPieceList(type, board.IsWhiteToMove).Count * 2.5;
+        }
+
+        board.UndoMove(move);
+        return score;
+    }
+
+    private Move? IsSpaceProtected(Board board, Square square)
+    {
+        List<Move> moves = new List<Move>(board.GetLegalMoves()).FindAll(m => m.IsCapture && m.TargetSquare == square);
+        if (moves.Count == 0)
+            return null;
+        moves.Sort((a, b) => GetPieceScore(a.MovePieceType).CompareTo(GetPieceScore(b.MovePieceType)));
+        return moves[0];
+    }
+
+    private int GetPieceScore(PieceType type)
+    {
+        switch (type)
+        {
+            case PieceType.Pawn:
+                return 1;
+            case PieceType.Knight:
+                return 3;
+            case PieceType.Bishop:
+                return 3;
+            case PieceType.Rook:
+                return 5;
+            case PieceType.Queen:
+                return 9;
+            case PieceType.King:
+                return 100;
+            default:
+                return 0;
+        }
     }
 }
