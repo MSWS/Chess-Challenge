@@ -2,16 +2,16 @@ using System;
 using System.Linq;
 using ChessChallenge.API;
 
-public class EvilBot : IChessBot
+public class EvilBotA : IChessBot
 {
     int[] pieceValues = { 0, 100, 300, 300, 500, 900, 10000 };
 
     public Move Think(Board board, Timer timer)
     {
-        return board.GetLegalMoves().MaxBy(move => -ScoreMove(board, move, 3, -99999, 99999));
+        return board.GetLegalMoves().MaxBy(move => -ScoreMove(board, move, 2, -99999, 99999));
     }
 
-    public double ScoreMove(Board board, Move move, int depth, double alpha, double beta)
+    public int ScoreMove(Board board, Move move, int depth, int alpha, int beta)
     {
         board.MakeMove(move);
 
@@ -39,7 +39,7 @@ public class EvilBot : IChessBot
         return alpha;
     }
 
-    public double Score(Board board)
+    public int Score(Board board)
     {
         if (board.IsInCheckmate())
         {
@@ -51,16 +51,7 @@ public class EvilBot : IChessBot
             return 0;
         }
 
-        double score = PieceScores(board, board.IsWhiteToMove) - PieceScores(board, !board.IsWhiteToMove);
-
-        // score += board.GetLegalMoves().Length / 50.0;
-        // if (board.TrySkipTurn())
-        // {
-        //     score -= board.GetLegalMoves().Length;
-        //     board.UndoSkipTurn();
-        // }
-
-        return score;
+        return PieceScores(board, board.IsWhiteToMove) - PieceScores(board, !board.IsWhiteToMove);
     }
 
     public int PieceScores(Board board, bool white)
